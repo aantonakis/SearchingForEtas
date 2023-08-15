@@ -1,0 +1,5 @@
+<lcgdict>
+	<class name = "ETA::PrimaryPFP"/> 
+	<class name = "ETA::vector<ETA::PrimaryPFP>"/> 
+</lcgdict>
+

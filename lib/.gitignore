@@ -1,0 +1,10 @@
+#We only want to keep the Makefile
+
+#Ignore all files in this directory
+*
+
+#Don't ignore this file or the Makefile or the XML files
+!.gitignore
+!Makefile
+!*.xml
+

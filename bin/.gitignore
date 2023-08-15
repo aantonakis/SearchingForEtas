@@ -1,0 +1,10 @@
+#This file let's us keep the directory, but forces it to be
+#empty when we do commits by ignoring the contents
+
+#Ignore all files in this directory
+*
+
+#Don't ignore this file
+!.gitignore
+
+

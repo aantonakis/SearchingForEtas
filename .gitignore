@@ -1,0 +1,4 @@
+# Ignore root files + plots in this directory
+*.root
+*.pdf
+

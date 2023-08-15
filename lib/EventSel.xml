@@ -1,0 +1,5 @@
+<lcgdict>
+	<class name = "ETA::Event"/> 
+	<class name = "ETA::vector<ETA::Event>"/> 
+</lcgdict>
+
