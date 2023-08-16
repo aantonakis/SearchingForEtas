@@ -19,7 +19,7 @@ LDFLAGS = $(ROOT_LDFLAGS)
 
 ## FILE LISTS ##
 
-PREFIXES = Event Slice EventBuilder PrimaryPFP SecondaryPFP
+PREFIXES = SecondaryPFP PrimaryPFP Slice Event EventBuilder 
 SRC_FILES = $(patsubst %, $(ETA_SRC_DIR)/%.cc, $(PREFIXES)) 
 DICT_FILES = $(patsubst %, %Dict.cc, $(PREFIXES)) 
 

@@ -19,16 +19,20 @@ using namespace std;
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
 
+#include "Event.h"
 #include "EventBuilder.h"
 
 namespace ETA {
 
 void EventBuilder::SetBranchAddresses(TTree *_tree) {
 	
+	// Event level Branches	
 	_tree->SetBranchAddress("rec.hdr.run", &run);
 	_tree->SetBranchAddress("rec.hdr.subrun", &subrun);
 	_tree->SetBranchAddress("rec.hdr.evt", &evt_id);
 
+
+	// Slice level Branches
 	_tree->SetBranchAddress("rec.slc..length", &slcLength);
 	_tree->SetBranchAddress("rec.slc.truth.prim..totarraysize", &nprim_tot);
 	_tree->SetBranchAddress("rec.slc.truth.pdg", slc_true_pdg);
@@ -43,6 +47,83 @@ void EventBuilder::SetBranchAddresses(TTree *_tree) {
 	_tree->SetBranchAddress("rec.slc.truth.iscc", iscc);
 	_tree->SetBranchAddress("rec.slc.truth.isnc", isnc);
 	
+	// Slice level stuff useful for particle heirarchy
+	_tree->SetBranchAddress("rec.slc.self", slc_self);
+	_tree->SetBranchAddress("rec.slc.truth.prim..length", slc_true_prim_length); // the number of primaries in a given slice
+	_tree->SetBranchAddress("rec.slc.truth.prim.G4ID", slc_true_prim_G4ID);
+	
+
+	// PFP level branches
+	_tree->SetBranchAddress("rec.slc.reco.pfp..totalarraysize", &pfp_totalarraysize);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.slcID", pfp_slcID); // slice ID to which the pfp belongs
+
+	// The main reco shw variables
+	_tree->SetBranchAddress("rec.slc.reco.pfp.trackScore", trkScore);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.razzle.photonScore", photonScore);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.razzle.electronScore", photonScore);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.razzle.bestScore", bestScore);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.start.x", pfp_shw_start_x);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.start.y", pfp_shw_start_y);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.start.z", pfp_shw_start_z);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.dir.x", pfp_shw_dir_x);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.dir.y", pfp_shw_dir_y);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.dir.z", pfp_shw_dir_z);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.conversion_gap", pfp_shw_conv_gap);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.bestplane_energy", pfp_shw_bestplane_energy);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.bestplane_dEdx", pfp_shw_bestplane_dEdx);
+	
+	
+	// The main true shw variables
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.truth.p.pdg", pfp_true_shw_pdg);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.truth.p.G4ID", pfp_true_shw_G4ID);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.truth.p.genE", pfp_true_shw_genE);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.truth.p.start.x", pfp_true_shw_start_x);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.truth.p.start.y", pfp_true_shw_start_y);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.truth.p.start.z", pfp_true_shw_start_z);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.truth.p.end.x", pfp_true_shw_end_x);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.truth.p.end.y", pfp_true_shw_end_y);
+	_tree->SetBranchAddress("rec.slc.reco.pfp.shw.truth.p.end.z", pfp_true_shw_end_z);
+
+
+
+}
+
+int EventBuilder::is_Prim(int pfp_trk_id, int slc_id, int slc_true_prim_len[], int slc_true_prim_G4IDs[]) {
+
+	int is_prim = 0;
+	int start_ind = 0;
+	for (int j = 0; j < slc_id; ++j) {
+		start_ind += slc_true_prim_len[j];
+	}
+	int k;
+	for (k = start_ind; k < start_ind + slc_true_prim_len[slc_id]; ++k) {
+
+		if (pfp_trk_id == slc_true_prim_G4IDs[k]) {
+			is_prim = 1;
+		}
+
+	}
+	
+	return is_prim;
+
+}
+
+
+int EventBuilder::FindSlice(int pfp_slcID_t,  Event *event) {
+	int slice_ind = -2; // dummy value
+	//std::cout << "number of slices to compare " << event->GetSliceCount() << std::endl;
+	for (int i = 0; i < event->GetSliceCount(); ++i) {
+		int self_id = event->GetSlice(i)->GetSelf();
+		//std::cout << "self_id for this slice " << self_id << std::endl;
+		if (self_id == pfp_slcID_t) {
+			
+			return i;
+		
+		}
+		
+	}
+	//std::cout << "Problem? Can't find slice for this pfp: " << "pfp_slcID = " << pfp_slcID_t <<std::endl;
+	return slice_ind;
 }
 
 
@@ -94,7 +175,7 @@ int EventBuilder::what_is_this_slice(int slc_ind, int slc_true_pdg, float vtx[3]
 		int p;
 
 		for (p = prim_start; p < prim_end; ++p) {
-			std::cout << "p in top func: " << p << std::endl;
+			//std::cout << "p in top func: " << p << std::endl;
 			if (prim_pdgs[p] == 111) {
 				npi0 += 1;
 			}

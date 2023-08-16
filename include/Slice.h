@@ -13,7 +13,7 @@
 
 /*
 
-  Class to store LArsoft event level information and to store all slices for an event
+  Class to store Slice level information 
 
 
 */
@@ -32,6 +32,8 @@ public:
 	Char_t iscc = -128;
 	Char_t isnc = -128;
 	
+	int self = -2; // TODO Maybe need to give a better nonsense number
+
 	std::vector<PrimaryPFP> primary_pfps; // a vector of slice objects associated with this event	
 	
 	// Clear the vector members of the Slice
@@ -56,6 +58,9 @@ public:
 	
 	void SetIsNC(Char_t _isnc) {isnc = _isnc;}
 	Char_t GetIsNC() const {return isnc;}
+	
+	void SetSelf(int _self) {self = _self;}
+	int GetSelf() const {return self;}
 		
 	int GetPrimaryPFPCount() const {return primary_pfps.size();}
 	void AddPrimaryPFP(PrimaryPFP primary_pfp) {return primary_pfps.push_back(primary_pfp);}

@@ -69,49 +69,6 @@ int main( int argc, char** argv ) {
 	std::cout << "Got the input tree" << std::endl;
 	input_tree->Print();  
 
-	// initialize all of the branch variables
-	
-	/*
-	int run;
-	int subrun;
-	int evt_id;
-	
-	int slcLength = 50;
-	int *slc_true_pdg = new int[slcLength];
-	float *vtx_x = new float[slcLength];
-	float *vtx_y = new float[slcLength];
-	float *vtx_z = new float[slcLength];
-	int nprim_tot = 100;
-	int *nprim = new int[slcLength];
-	int *prim_pdgs = new int[nprim_tot];
-	
-	Char_t *is_clear_cosmic = new Char_t[slcLength];
-	float *nu_score = new float[slcLength];
-	Char_t *iscc = new Char_t[slcLength];
-	Char_t *isnc = new Char_t[slcLength];
-
-	std::cout << "About to set the Branch Addresses" << std::endl;
-	
-	input_tree->SetBranchAddress("rec.hdr.run", &run);
-	input_tree->SetBranchAddress("rec.hdr.subrun", &subrun);
-	input_tree->SetBranchAddress("rec.hdr.evt", &evt_id);
-
-	input_tree->SetBranchAddress("rec.slc..length", &slcLength);
-	input_tree->SetBranchAddress("rec.slc.truth.prim..totarraysize", &nprim_tot);
-	input_tree->SetBranchAddress("rec.slc.truth.pdg", slc_true_pdg);
-	input_tree->SetBranchAddress("rec.slc.truth.position.x", vtx_x);
-	input_tree->SetBranchAddress("rec.slc.truth.position.y", vtx_y);
-	input_tree->SetBranchAddress("rec.slc.truth.position.z", vtx_z);
-	input_tree->SetBranchAddress("rec.slc.truth.prim.pdg", prim_pdgs);
-	input_tree->SetBranchAddress("rec.slc.truth.nprim", nprim);
-	
-	input_tree->SetBranchAddress("rec.slc.is_clear_cosmic", is_clear_cosmic);
-	input_tree->SetBranchAddress("rec.slc.nu_score", nu_score);
-	input_tree->SetBranchAddress("rec.slc.truth.iscc", iscc);
-	input_tree->SetBranchAddress("rec.slc.truth.isnc", isnc);
-	
-	std::cout << "SetBranchAddress Successful" << std::endl;
-	*/
 
 	// The EventBuilder Class has useful helper functions
 	EventBuilder ev;
@@ -120,10 +77,12 @@ int main( int argc, char** argv ) {
 	for (int i = 0, N = input_tree->GetEntries(); i < N; ++i) {
 	//for (int i = 0, N = input_tree->GetEntries(); i < 10; ++i) {
 
-		//std::cout << "Event: " << i << std::endl;
+		//event->Clear(); // clear the event before filling with new stuff
+		
 		input_tree->GetEntry(i);
 		
 		event->Clear(); // clear the event before filling with new stuff
+		
 
 		event->SetID(ev.evt_id);
 		event->SetRun(ev.run); 
@@ -132,6 +91,8 @@ int main( int argc, char** argv ) {
 
 		std::cout << std::endl;
 		std::cout << "Event: " << i << std::endl;
+		std::cout << "Run: " << ev.run << " SubRun " << ev.subrun << std::endl;		
+
 
 		// The EventBuilder Class has useful helper functions
 		//EventBuilder ev;
@@ -140,20 +101,15 @@ int main( int argc, char** argv ) {
 		std::cout << "starting Slice Loop" << std::endl;
 		for (int j = 0; j < ev.slcLength; ++j) {
 			
-			
+
 			Slice new_slice;
 			new_slice.SetID(j);
 			new_slice.SetIsClearCosmic(ev.is_clear_cosmic[j]);
 			new_slice.SetNuScore(ev.nu_score[j]);
 			new_slice.SetIsCC(ev.iscc[j]);
 			new_slice.SetIsNC(ev.isnc[j]);
+			new_slice.SetSelf(ev.slc_self[j]);			
 			
-			std::cout << "is_clear_cosmic" << ev.is_clear_cosmic[j] << std::endl;
-			
-			std::cout << "j " << j << " iscc " << ev.iscc[j] << std::endl;
-			//std::cout << "Set iscc " << new_slice.GetIsCC() << std::endl;
-			//std::cout << "j " << j << " isnc " << isnc[j] << std::endl;
-			//std::cout << "Set isnc " << new_slice.GetIsNC() << std::endl;
 			float vtx[3] = {ev.vtx_x[j], ev.vtx_y[j], ev.vtx_z[j]};
 			
 			new_slice.SetTop(ev.what_is_this_slice(j, ev.slc_true_pdg[j], vtx, ev.prim_pdgs, ev.nprim));
@@ -162,7 +118,37 @@ int main( int argc, char** argv ) {
 
    		}
 		
+		std::cout << "Starting Primary PFP Loop" << std::endl;
+		
+		for (int k = 0; k < ev.pfp_totalarraysize; ++k) {
+			int pfp_slcID_t = ev.pfp_slcID[k];
+			//std::cout << "pfp " << k << " pfp_slcID " << pfp_slcID_t << std::endl;
+			int pfp_trk_id = ev.pfp_true_shw_G4ID[k];
+
+			int slc_id = ev.FindSlice(pfp_slcID_t, event);	
+			int is_prim_pfp;
+			if (slc_id != -2) { 
+				is_prim_pfp = ev.is_Prim(pfp_trk_id, slc_id, ev.slc_true_prim_length, ev.slc_true_prim_G4ID);
+			}
+
+			if (is_prim_pfp) {
+				
+				PrimaryPFP new_primary_pfp;
+				new_primary_pfp.SetID(k);
+				event->GetSlice(slc_id)->AddPrimaryPFP(new_primary_pfp);
+
+			}
+
+		}
+		std::cout << "Fill out_tree with this event" << std::endl;
 		out_tree->Fill();
+		std::cout << "About to clear the slices of their Primary pfps" << std::endl;
+		for (int s = 0; s < event->GetSliceCount(); ++s) {
+
+			event->GetSlice(s)->Clear();
+
+		}
+
 	}
 
 
